@@ -24,7 +24,9 @@ export function AppHeader() {
       <div className="container flex h-16 max-w-screen-2xl items-center">
         <Link href="/" className="mr-6 flex items-center space-x-2">
           <MessageCircle className="h-6 w-6 text-accent" />
-          <span className="font-bold sm:inline-block">EchoAI</span>
+          <span className="font-bold sm:inline-block bg-gradient-to-r from-teal-600 via-blue-600 to-indigo-600 dark:from-purple-400 dark:via-pink-500 dark:to-red-500 bg-clip-text text-transparent">
+            Synapse AI
+          </span>
         </Link>
         <div className="flex flex-1 items-center justify-end space-x-2">
           <ThemeToggle />

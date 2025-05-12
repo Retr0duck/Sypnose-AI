@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'EchoAI - Chat with IA',
+  title: 'SypnoseAI - Chat with IA',
   description: 'A clean chat interface to interact with an AI, built with Next.js and Firebase.',
 };
 

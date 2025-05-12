@@ -30,15 +30,10 @@ export default function Home() {
           <ChatInterface />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-            <Image 
-              src="https://picsum.photos/seed/ai-chat/300/200" 
-              alt="AI Chat illustration" 
-              width={300} 
-              height={200} 
-              className="rounded-lg mb-8 shadow-xl"
-              data-ai-hint="robot conversation"
-            />
-            <h1 className="text-4xl font-bold mb-4 text-foreground">Welcome to EchoAI</h1>
+            
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
+              Synapse AI
+            </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-md">
               Sign in to start chatting with our intelligent AI. Your conversations are saved securely.
             </p>
