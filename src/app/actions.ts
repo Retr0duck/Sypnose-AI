@@ -1,28 +1,28 @@
-
 "use server";
 
 import { db } from "@/lib/firebase";
 import { collection, addDoc, query, where, orderBy, getDocs, serverTimestamp, Timestamp } from "firebase/firestore";
 import type { Message } from "@/types";
-import { generateInitialPrompt } from "@/ai/flows/generate-initial-prompt"; // Using this as a placeholder for actual chat
+import { generateInitialPrompt } from "@/ai/flows/generate-initial-prompt"; 
 
 // Placeholder for a real chat AI flow.
-// For now, we'll use generateInitialPrompt and just respond with its output, ignoring user message.
 async function getAiResponse(userId: string, userMessageText: string, _chatHistory: Message[]): Promise<string> {
   try {
-    // In a real scenario, you'd use userMessageText and chatHistory to generate a contextual response.
-    // This might involve calling a Genkit flow like:
-    // const response = await someChatCompletionFlow({ userId, message: userMessageText, history: chatHistory });
-    // return response.aiMessage;
-
-    // For demonstration, using generateInitialPrompt.
     // The topic could be dynamic or related to the user's message if more complex logic was added.
     const topic = userMessageText.split(" ").slice(0, 3).join(" ") || "a friendly conversation";
     const initialPromptResponse = await generateInitialPrompt({ topic });
-    return initialPromptResponse.initialPrompt || "I'm sorry, I couldn't think of a response right now.";
+    
+    if (initialPromptResponse && initialPromptResponse.initialPrompt) {
+        return initialPromptResponse.initialPrompt;
+    }
+    console.warn("AI did not provide an initial prompt. Falling back.");
+    return "I'm sorry, I couldn't think of a response right now.";
+
   } catch (error) {
     console.error("Error getting AI response:", error);
-    return "There was an error processing your request.";
+    // Ensure the error is logged, but return a user-friendly message.
+    // The actual error object might not be serializable or appropriate to send to the client directly.
+    return "There was an error processing your request with the AI.";
   }
 }
 
@@ -37,18 +37,26 @@ export async function sendMessageAndGetResponse(userId: string, userMessageText:
   const aiResponseText = await getAiResponse(userId, userMessageText, chatHistory);
 
   // 3. Create AI message object
-  const aiMessage: Omit<Message, "id" | "timestamp"> & { timestamp: any } = { // serverTimestamp is an object
+  const aiMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = { 
     text: aiResponseText,
     sender: 'ai',
     userId: userId,
-    timestamp: serverTimestamp(),
+    timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
   };
 
   // 4. Save AI message to Firestore
   try {
     const messagesColRef = collection(db, "users", userId, "messages");
-    const docRef = await addDoc(messagesColRef, aiMessage);
-    return { ...aiMessage, id: docRef.id, timestamp: Timestamp.now() } as Message; // Return with ID and client-side timestamp
+    const docRef = await addDoc(messagesColRef, aiMessageData);
+    // For return to client, use a serializable timestamp (Date object)
+    const savedTimestamp = new Date(); // Approximate with current client time, or re-fetch for precision if needed
+    return { 
+        id: docRef.id,
+        text: aiMessageData.text,
+        sender: aiMessageData.sender,
+        userId: aiMessageData.userId,
+        timestamp: savedTimestamp 
+    } as Message;
   } catch (error) {
     console.error("Error saving AI message to Firestore:", error);
     return null;
@@ -61,18 +69,25 @@ export async function saveUserMessage(userId: string, messageText: string): Prom
     return null;
   }
 
-  const userMessage: Omit<Message, "id" | "timestamp"> & { timestamp: any } = {
+  const userMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = {
     text: messageText,
     sender: 'user',
     userId: userId,
-    timestamp: serverTimestamp(),
+    timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
   };
 
   try {
     const messagesColRef = collection(db, "users", userId, "messages");
-    const docRef = await addDoc(messagesColRef, userMessage);
-    // For immediate UI update, return with client-side timestamp representation
-    return { ...userMessage, id: docRef.id, timestamp: Timestamp.now() } as Message;
+    const docRef = await addDoc(messagesColRef, userMessageData);
+    // For immediate UI update and return to client, use a serializable timestamp (Date object)
+    const savedTimestamp = new Date(); // Approximate with current client time for optimistic update
+    return { 
+        id: docRef.id,
+        text: userMessageData.text,
+        sender: userMessageData.sender,
+        userId: userMessageData.userId,
+        timestamp: savedTimestamp 
+    } as Message;
   } catch (error) {
     console.error("Error saving user message to Firestore:", error);
     return null;
@@ -90,12 +105,14 @@ export async function getChatHistory(userId: string): Promise<Message[]> {
     
     const messages = querySnapshot.docs.map(doc => {
       const data = doc.data();
-      // Ensure timestamp is serializable (convert Firestore Timestamp to Date or number if needed)
-      // For this app, we'll assume ChatMessage component can handle Firestore Timestamp
+      // Convert Firestore Timestamp to Date object for client-side use
+      const timestamp = data.timestamp instanceof Timestamp ? data.timestamp.toDate() : new Date();
       return {
         id: doc.id,
-        ...data,
-        timestamp: data.timestamp, // Keep as Firestore Timestamp
+        text: data.text,
+        sender: data.sender,
+        userId: data.userId,
+        timestamp: timestamp,
       } as Message;
     });
     return messages;

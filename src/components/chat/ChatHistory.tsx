@@ -9,7 +9,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ChatHistoryProps {
   messages: Message[];
-  userAvatarUrl?: string | null;
+  userAvatarUrl?: string | null; 
   userName?: string | null;
   isLoadingAiResponse: boolean;
 }

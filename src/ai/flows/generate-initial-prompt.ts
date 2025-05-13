@@ -38,8 +38,24 @@ const generateInitialPromptFlow = ai.defineFlow(
     inputSchema: GenerateInitialPromptInputSchema,
     outputSchema: GenerateInitialPromptOutputSchema,
   },
-  async input => {
-    const {output} = await initialPromptPrompt(input);
-    return output!;
+  async (input): Promise<GenerateInitialPromptOutput> => {
+    try {
+      // For structured output, Genkit prompt invoker returns an object with an 'output' property.
+      const result = await initialPromptPrompt(input);
+      
+      // The actual output from the LLM, conforming to GenerateInitialPromptOutputSchema
+      const output = result.output;
+
+      if (output && typeof output.initialPrompt === 'string') {
+        return output;
+      }
+      
+      console.error('Genkit flow "generateInitialPromptFlow" did not return the expected output structure or initialPrompt was missing/invalid. Output received:', output);
+      throw new Error('AI failed to generate a valid initial prompt content.');
+    } catch (error) {
+      console.error('Error in generateInitialPromptFlow execution:', error);
+      // Re-throw a new error to ensure it's a standard Error object and to provide context
+      throw new Error(`Failed to generate initial prompt via Genkit flow: ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 );
