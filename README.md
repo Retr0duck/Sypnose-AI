@@ -1,5 +1,23 @@
-# Firebase Studio
+# ✨ AI Chat App con Gemini y Firebase
 
-This is a NextJS starter in Firebase Studio.
+Una aplicación web de chat potenciada por la API de Gemini 1.5 de Google, integrada con Firebase para el manejo de usuarios y almacenamiento de mensajes.
 
-To get started, take a look at src/app/page.tsx.
+## 🚀 Funcionalidades
+
+- 🧠 Generación de respuestas automáticas usando `gemini-1.5-flash-latest`
+- 🔐 Autenticación de usuarios con Firebase Authentication
+- 💬 Historial de conversación guardado en Firestore por usuario
+- ⏱️ Timestamps sincronizados con el servidor
+- 📄 Prompt dinámico y adaptado al historial del usuario
+
+---
+
+## 🛠️ Tecnologías
+
+- **Next.js (App Router + Server Actions)**
+- **Firebase (Authentication + Firestore)**
+- **Google Generative AI (`@google/generative-ai`)**
+- **TailwindCSS** (opcional, si estás usando estilos)
+- **TypeScript**
+
+---
