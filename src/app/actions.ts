@@ -8,24 +8,30 @@ import { generateInitialPrompt } from "@/ai/flows/generate-initial-prompt";
 // Internal function to get AI response. Errors are handled here or propagated.
 async function getAiResponse(userId: string, userMessageText: string, _chatHistory: Message[]): Promise<string> {
   if (!userId) {
-    // This should ideally not happen if called correctly by exported functions
-    console.error("getAiResponse called without userId");
-    return "Error: User ID was missing for AI processing.";
+    console.error("getAiResponse llamado sin userId.");
+    return "Error: No se proporcionó el ID del usuario.";
   }
+
   try {
-    // The topic could be dynamic or related to the user's message if more complex logic was added.
-    const topic = userMessageText.split(" ").slice(0, 3).join(" ") || "a friendly conversation";
+    const topic = userMessageText.split(" ").slice(0, 3).join(" ") || "una conversación amistosa";
+
+    console.log("Solicitando a Gemini con topic:", topic);
+
     const initialPromptResponse = await generateInitialPrompt({ topic });
-    
-    if (initialPromptResponse && initialPromptResponse.initialPrompt) {
-        return initialPromptResponse.initialPrompt;
+
+    console.log("Respuesta completa de Gemini:", initialPromptResponse);
+
+    // Validar que sea un objeto y tenga el campo esperado
+    if (initialPromptResponse && typeof initialPromptResponse.initialPrompt === "string") {
+      return initialPromptResponse.initialPrompt;
+    } else {
+      console.warn("La IA no devolvió un prompt válido:", initialPromptResponse);
+      return "Lo siento, no pude generar una respuesta en este momento.";
     }
-    console.warn("AI did not provide an initial prompt. Falling back.");
-    return "I'm sorry, I couldn't think of a response right now.";
 
   } catch (error) {
-    console.error("Error getting AI response from Genkit flow:", error);
-    return "There was an error processing your request with the AI.";
+    console.error("Error al obtener respuesta de la IA:", error);
+    return "Hubo un error al procesar tu mensaje con la IA.";
   }
 }
 
