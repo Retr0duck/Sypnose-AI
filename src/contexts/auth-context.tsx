@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { ReactNode } from "react";
@@ -8,7 +9,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   sendEmailVerification,
-  type User as FirebaseUser // Renamed to avoid conflict
+  signInAnonymously as firebaseSignInAnonymously, // Added anonymous sign-in
+  type User as FirebaseUser 
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import type { UserProfile } from "@/types";
@@ -21,6 +23,7 @@ interface AuthContextType {
   isEmailVerified: boolean;
   signUpWithEmail: (email: string, password: string) => Promise<boolean>;
   signInWithEmail: (email: string, password: string) => Promise<boolean>;
+  signInAnonymously: () => Promise<boolean>; // Added anonymous sign-in method
   sendVerificationEmail: () => Promise<void>;
   signOut: () => Promise<void>;
 }
@@ -38,7 +41,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
         setUser(firebaseUser as UserProfile);
-        setIsEmailVerified(firebaseUser.emailVerified);
+        // For anonymous users, emailVerified will be false, which is fine.
+        // We only care about email verification for email/password accounts.
+        setIsEmailVerified(firebaseUser.isAnonymous ? true : firebaseUser.emailVerified);
       } else {
         setUser(null);
         setIsEmailVerified(false);
@@ -59,7 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           title: "Account Created",
           description: "A verification email has been sent. Please check your inbox.",
         });
-        // User will be set by onAuthStateChanged
         return true;
       }
       return false;
@@ -80,7 +84,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      // User state and email verification status will be updated by onAuthStateChanged
       return true;
     } catch (error: any) {
       console.error("Error signing in: ", error);
@@ -94,9 +97,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+
+  const signInAnonymously = async (): Promise<boolean> => {
+    setLoading(true);
+    try {
+      await firebaseSignInAnonymously(auth);
+      toast({
+        title: "Signed In Anonymously",
+        description: "You are now browsing as a guest.",
+      });
+      // User state will be updated by onAuthStateChanged
+      return true;
+    } catch (error: any) {
+      console.error("Error signing in anonymously: ", error);
+      toast({
+        title: "Anonymous Sign In Failed",
+        description: error.message || "Could not sign in anonymously.",
+        variant: "destructive",
+      });
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const sendVerificationEmail = useCallback(async () => {
-    if (auth.currentUser) {
+    if (auth.currentUser && !auth.currentUser.isAnonymous) { // Only send if not anonymous
       setLoading(true);
       try {
         await sendEmailVerification(auth.currentUser);
@@ -122,8 +148,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       setLoading(true);
       await firebaseSignOut(auth);
-      router.push('/'); 
-    } catch (error) {
+      // router.push('/'); // No longer needed, onAuthStateChanged will handle UI update
+    } catch (error: any) {
       console.error("Error signing out: ", error);
       toast({
         title: "Sign Out Error",
@@ -136,7 +162,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   return (
-    <AuthContext.Provider value={{ user, loading, isEmailVerified, signUpWithEmail, signInWithEmail, sendVerificationEmail, signOut }}>
+    <AuthContext.Provider value={{ user, loading, isEmailVerified, signUpWithEmail, signInWithEmail, signInAnonymously, sendVerificationEmail, signOut }}>
       {children}
     </AuthContext.Provider>
   );
@@ -149,3 +175,5 @@ export const useAuth = (): AuthContextType => {
   }
   return context;
 };
+
+    

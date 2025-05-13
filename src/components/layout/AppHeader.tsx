@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { MessageCircle, LogOut } from "lucide-react";
+import { MessageCircle, LogOut, User as UserIcon } from "lucide-react"; // Added UserIcon
 import { ThemeToggle } from "@/components/theme/ThemeToggle";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,6 +18,25 @@ import {
 
 export function AppHeader() {
   const { user, signOut, loading } = useAuth();
+
+  const getDisplayName = () => {
+    if (!user) return "U";
+    if (user.isAnonymous) return "Guest";
+    return user.displayName || user.email?.charAt(0).toUpperCase() || "U";
+  };
+
+  const getDisplayEmail = () => {
+    if (!user) return "";
+    if (user.isAnonymous) return "Anonymous User";
+    return user.email || "";
+  };
+
+  const getAvatarFallback = () => {
+    if (!user) return "U";
+    if (user.isAnonymous) return <UserIcon className="h-5 w-5" />;
+    return user.displayName ? user.displayName.charAt(0).toUpperCase() : user.email?.charAt(0).toUpperCase() || "U";
+  };
+
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -37,17 +56,17 @@ export function AppHeader() {
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.photoURL || undefined} alt={user.displayName || "User"} />
-                    <AvatarFallback>{user.displayName ? user.displayName.charAt(0).toUpperCase() : "U"}</AvatarFallback>
+                    {!user.isAnonymous && <AvatarImage src={user.photoURL || undefined} alt={getDisplayName()} />}
+                    <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                    <p className="text-sm font-medium leading-none">{getDisplayName()}</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {getDisplayEmail()}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -59,6 +78,9 @@ export function AppHeader() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
+             // This case should ideally not be reached if loading is false and user is null
+             // because the page would redirect to auth forms.
+             // However, as a fallback:
             <span className="text-sm text-muted-foreground">Not logged in</span>
           )}
         </div>
@@ -66,3 +88,5 @@ export function AppHeader() {
     </header>
   );
 }
+
+    

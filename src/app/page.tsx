@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState } from "react";
@@ -39,7 +40,8 @@ export default function Home() {
     }
 
     // User is signed in
-    if (!isEmailVerified || authView === 'verifyEmail') {
+    // Show verification prompt only if user is not anonymous AND email is not verified
+    if (user && !user.isAnonymous && (!isEmailVerified || authView === 'verifyEmail')) {
       return (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
           <MailCheck className="h-16 w-16 text-accent mb-4" />
@@ -62,7 +64,7 @@ export default function Home() {
       );
     }
 
-    // User is signed in and email is verified
+    // User is signed in and (email is verified OR user is anonymous)
     return <ChatInterface />;
   };
   
@@ -70,10 +72,12 @@ export default function Home() {
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
       <main className="flex-1 flex flex-col">
-        {user && isEmailVerified ? (
+        {/* Show ChatInterface if user exists AND (user is anonymous OR email is verified) */}
+        {user && (user.isAnonymous || isEmailVerified) ? (
           <ChatInterface />
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center">
+             {/* Show titles only if not in verification view and no user (pre-auth screens) */}
             { authView !== 'verifyEmail' && !user && (
               <>
                 <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-teal-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">
@@ -93,3 +97,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

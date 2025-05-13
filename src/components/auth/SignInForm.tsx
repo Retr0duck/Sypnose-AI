@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -16,7 +17,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useAuth } from "@/contexts/auth-context";
-import { Loader2 } from "lucide-react";
+import { Loader2, User } from "lucide-react"; // Added User icon
+import { Separator } from "@/components/ui/separator";
 
 const signInSchema = z.object({
   email: z.string().email({ message: "Invalid email address." }),
@@ -30,7 +32,7 @@ interface SignInFormProps {
 }
 
 export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
-  const { signInWithEmail, loading } = useAuth();
+  const { signInWithEmail, signInAnonymously, loading } = useAuth();
   const form = useForm<SignInFormValues>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
@@ -41,7 +43,10 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
 
   async function onSubmit(values: SignInFormValues) {
     await signInWithEmail(values.email, values.password);
-    // Navigation or further actions will be handled by AuthContext effects
+  }
+
+  async function handleSignInAnonymously() {
+    await signInAnonymously();
   }
 
   return (
@@ -80,6 +85,23 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
           </Button>
         </form>
       </Form>
+
+      <div className="my-6 flex items-center">
+        <Separator className="flex-1" />
+        <span className="mx-4 text-xs text-muted-foreground">OR</span>
+        <Separator className="flex-1" />
+      </div>
+
+      <Button 
+        variant="outline" 
+        className="w-full" 
+        onClick={handleSignInAnonymously} 
+        disabled={loading}
+      >
+        {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <User className="mr-2 h-4 w-4" />}
+        Continue as Guest
+      </Button>
+
       <p className="mt-6 text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{" "}
         <Button variant="link" onClick={onSwitchToSignUp} className="p-0 h-auto font-semibold text-accent">
@@ -89,3 +111,5 @@ export function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
     </div>
   );
 }
+
+    
