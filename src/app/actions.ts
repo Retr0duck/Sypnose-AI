@@ -5,8 +5,13 @@ import { collection, addDoc, query, where, orderBy, getDocs, serverTimestamp, Ti
 import type { Message } from "@/types";
 import { generateInitialPrompt } from "@/ai/flows/generate-initial-prompt"; 
 
-// Placeholder for a real chat AI flow.
+// Internal function to get AI response. Errors are handled here or propagated.
 async function getAiResponse(userId: string, userMessageText: string, _chatHistory: Message[]): Promise<string> {
+  if (!userId) {
+    // This should ideally not happen if called correctly by exported functions
+    console.error("getAiResponse called without userId");
+    return "Error: User ID was missing for AI processing.";
+  }
   try {
     // The topic could be dynamic or related to the user's message if more complex logic was added.
     const topic = userMessageText.split(" ").slice(0, 3).join(" ") || "a friendly conversation";
@@ -19,9 +24,7 @@ async function getAiResponse(userId: string, userMessageText: string, _chatHisto
     return "I'm sorry, I couldn't think of a response right now.";
 
   } catch (error) {
-    console.error("Error getting AI response:", error);
-    // Ensure the error is logged, but return a user-friendly message.
-    // The actual error object might not be serializable or appropriate to send to the client directly.
+    console.error("Error getting AI response from Genkit flow:", error);
     return "There was an error processing your request with the AI.";
   }
 }
@@ -32,24 +35,24 @@ export async function sendMessageAndGetResponse(userId: string, userMessageText:
     return null;
   }
 
-  // 1. User message is already saved by the client before calling this.
-  // 2. Get AI response
-  const aiResponseText = await getAiResponse(userId, userMessageText, chatHistory);
-
-  // 3. Create AI message object
-  const aiMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = { 
-    text: aiResponseText,
-    sender: 'ai',
-    userId: userId,
-    timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
-  };
-
-  // 4. Save AI message to Firestore
   try {
+    // 1. User message is already saved by the client before calling this.
+    // 2. Get AI response
+    const aiResponseText = await getAiResponse(userId, userMessageText, chatHistory);
+
+    // 3. Create AI message object
+    const aiMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = { 
+      text: aiResponseText,
+      sender: 'ai',
+      userId: userId,
+      timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
+    };
+
+    // 4. Save AI message to Firestore
     const messagesColRef = collection(db, "users", userId, "messages");
     const docRef = await addDoc(messagesColRef, aiMessageData);
     // For return to client, use a serializable timestamp (Date object)
-    const savedTimestamp = new Date(); // Approximate with current client time, or re-fetch for precision if needed
+    const savedTimestamp = new Date(); 
     return { 
         id: docRef.id,
         text: aiMessageData.text,
@@ -58,7 +61,7 @@ export async function sendMessageAndGetResponse(userId: string, userMessageText:
         timestamp: savedTimestamp 
     } as Message;
   } catch (error) {
-    console.error("Error saving AI message to Firestore:", error);
+    console.error("Error in sendMessageAndGetResponse:", error);
     return null;
   }
 }
@@ -69,18 +72,18 @@ export async function saveUserMessage(userId: string, messageText: string): Prom
     return null;
   }
 
-  const userMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = {
-    text: messageText,
-    sender: 'user',
-    userId: userId,
-    timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
-  };
-
   try {
+    const userMessageData: Omit<Message, "id" | "timestamp"> & { timestamp: any } = {
+      text: messageText,
+      sender: 'user',
+      userId: userId,
+      timestamp: serverTimestamp(), // Use serverTimestamp for writing to Firestore
+    };
+
     const messagesColRef = collection(db, "users", userId, "messages");
     const docRef = await addDoc(messagesColRef, userMessageData);
     // For immediate UI update and return to client, use a serializable timestamp (Date object)
-    const savedTimestamp = new Date(); // Approximate with current client time for optimistic update
+    const savedTimestamp = new Date(); 
     return { 
         id: docRef.id,
         text: userMessageData.text,
@@ -89,7 +92,7 @@ export async function saveUserMessage(userId: string, messageText: string): Prom
         timestamp: savedTimestamp 
     } as Message;
   } catch (error) {
-    console.error("Error saving user message to Firestore:", error);
+    console.error("Error in saveUserMessage:", error);
     return null;
   }
 }
@@ -121,3 +124,4 @@ export async function getChatHistory(userId: string): Promise<Message[]> {
     return [];
   }
 }
+
